@@ -9,16 +9,19 @@ from torchvision import transforms
 
 import random
 
+description = "Cloud Sofa Couch, Fabric, Green"
+#description = ""
+
 PROMPT_TEMPLATE = {
-    'a photo of a {}': 4,
-    'a good photo of a {}': 5,
-    'the photo of a {}': 4,
-    'a good photo of the {}': 5,
-    'image of a {}': 3,
-    'image of the {}': 3,
-    'A photograph of {}': 3,
-    'A {} shown in a photo': 1,
-    'A photo of {}': 3,
+    'a photo of a {}' + description: 4,
+    'a good photo of a {}' + description: 5,
+    'the photo of a {}' + description: 4,
+    'a good photo of the {}' + description: 5,
+    'image of a {}' + description: 3,
+    'image of the {}' + description: 3,
+    'A photograph of {}' + description: 3,
+    'A {} shown in a photo' + description: 1,
+    'A photo of {}' + description: 3,
 }
 
 
@@ -56,8 +59,7 @@ class PersonalizedBase(Dataset):
             self._length = self.num_images * repeats
 
         self.size = size
-        self.interpolation = {"linear": PIL.Image.LINEAR,
-                              "bilinear": PIL.Image.BILINEAR,
+        self.interpolation = {"bilinear": PIL.Image.BILINEAR,
                               "bicubic": PIL.Image.BICUBIC,
                               "lanczos": PIL.Image.LANCZOS,
                               }[interpolation]
