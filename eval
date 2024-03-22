@@ -1,0 +1,76 @@
+import os
+import numpy as np
+
+import clip
+import torch
+from torchvision import transforms
+from PIL import Image
+
+from ldm.models.diffusion.ddim import DDIMSampler
+
+def encode_images(image_path, device, preprocess, mask=False):
+    images = Image.open(image_path)
+    images = preprocess(images).unsqueeze(0).to(device)
+
+    # get mask
+    if mask:
+        img_folder, img_file = os.path.split(image_path)
+        masks = Image.open(os.path.join(img_folder, 'mask', img_file))
+        masks = preprocess(masks).unsqueeze(0).to(device)
+
+        images = images * masks
+    
+    return model.encode_image(images)
+
+def get_image_features(img, device, preprocess, model, norm=True):
+    image_features = encode_images(img, device, preprocess)
+    
+    if norm:
+        image_features /= image_features.clone().norm(dim=-1, keepdim=True)
+
+    return image_features
+
+def img_to_img_similarity(src_images, generated_images, device, preprocess, model):
+    src_img_features = get_image_features(src_images, device, preprocess, model)
+    gen_img_features = get_image_features(generated_images, device, preprocess, model)
+
+    return (src_img_features @ gen_img_features.T).mean()
+
+def evaluate_img_sim(gen_folder, src_folder, device, preprocess, model):
+    img_sim_list = []
+
+    gen_images = os.listdir(gen_folder)
+    src_images = os.listdir(src_folder)
+    for gen_image in gen_images:
+        if gen_image == 'mask':
+            continue
+        else:
+            for src_image in src_images:
+                if src_image == 'mask':
+                    continue
+                else:
+                    sim_samples_to_img = img_to_img_similarity(
+                        os.path.join(src_folder, src_image),
+                        os.path.join(gen_folder, gen_image),
+                        device,
+                        preprocess,
+                        model
+                    )
+                    img_sim_list.append(sim_samples_to_img.cpu().detach().numpy())
+
+    return np.mean(np.array(img_sim_list))
+
+device = 'cuda'
+clip_model = 'ViT-B/32'
+model, preprocess = clip.load(clip_model, device=device)
+mask = True
+
+img_sim = evaluate_img_sim(
+    '/workspace/shared-dir/llm/klroe/new_concept_results/sofa/raw_results/sd',
+    '/training_data/sofa',
+    device,
+    preprocess,
+    model
+)
+
+print(img_sim)
